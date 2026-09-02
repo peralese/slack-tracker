@@ -1,0 +1,80 @@
+# Slack Tracker Configuration
+# Secrets (SLACK_BOT_TOKEN, LLM_API_KEY) must NEVER appear here — put them in .env
+
+slack:
+  # The Slack channel ID to monitor (format: C0123ABCDEF)
+  # To find your channel ID: right-click the channel in Slack → "Copy Link" — the ID is the last segment
+  channel_id: "C0BU3752Y87"
+
+  # How often to poll Slack for new messages (in minutes)
+  poll_interval_minutes: 15
+
+  # How far back to scan on the very first run (or when no prior state exists)
+  # Useful for testing when relevant content may not have been posted today
+  lookback_days: 7
+
+llm:
+  # LLM provider to use for relevance scoring
+  # Supported values: openai | watsonx | ollama
+  provider: "ollama"
+
+  # Model name (provider-specific)
+  # Examples:
+  #   openai:   "gpt-4o-mini"
+  #   watsonx:  "ibm/granite-3-3-8b-instruct"
+  #   ollama:   "llama3.2"
+  model: "llama3.1:8b"
+
+  # Base URL for the LLM API endpoint
+  # Leave empty to use the provider's default
+  # Examples:
+  #   openai:   "" (uses https://api.openai.com/v1 by default)
+  #   watsonx:  "https://us-south.ml.cloud.ibm.com"
+  #   ollama:   "http://localhost:11434"
+  base_url: "http://localhost:11434"
+
+ranking:
+  # User profile embedded in the LLM system prompt to drive relevance scoring
+  # Update this to reflect your own role and focus areas
+  user_profile: >
+    IBM technical consultant and architect focused on AI, data, and cloud solutions
+    for enterprise clients. Interested in generative AI, large language models,
+    MLOps, data platforms, hybrid cloud, and enterprise architecture.
+
+  # Keywords used in the Phase 1 pre-filter (case-insensitive)
+  # A message must hit at least min_keyword_score of these to proceed to LLM scoring
+  keywords:
+    - AI
+    - LLM
+    - machine learning
+    - generative
+    - watsonx
+    - GPT
+    - Claude
+    - data platform
+    - MLOps
+    - hybrid cloud
+    - enterprise architecture
+    - vector database
+    - RAG
+    - agent
+    - automation
+    - OpenAI
+    - foundation model
+    - Granite
+    - ICA
+    - consulting advantage
+    - training
+    - session
+    - workshop
+    - webinar
+    - announcement
+    - tool
+    - case study
+
+  # Minimum keyword hits required to pass the pre-filter and trigger an LLM call
+  min_keyword_score: 1
+
+database:
+  # Path to the SQLite database file
+  path: "./slack-tracker.db"
