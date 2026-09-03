@@ -23,16 +23,24 @@ _SLACK_BOLD_RE = re.compile(r"\*([^*]+)\*")                   # *bold* → text
 _SLACK_ITALIC_RE = re.compile(r"_([^_]+)_")                   # _italic_ → text
 _SLACK_STRIKE_RE = re.compile(r"~([^~]+)~")                   # ~strike~ → text
 _SLACK_CODE_RE = re.compile(r"`([^`]+)`")                     # `code` → text
+_SLACK_EMOJI_RE = re.compile(r":[a-z0-9_\-+]+:")              # :emoji: → remove
+_SLACK_USER_RE = re.compile(r"<@[A-Z0-9]+>")                  # <@USER> → remove
+_SLACK_CHANNEL_RE = re.compile(r"<#[A-Z0-9]+\|([^>]+)>")     # <#ID|name> → name
+_SLACK_MULTISPACE_RE = re.compile(r" {2,}")                   # collapse extra spaces
 
 
 def clean_slack_text(text: str) -> str:
-    """Strip Slack formatting markup from message text for cleaner LLM input."""
-    text = _SLACK_URL_RE.sub(r"\1", text)      # <url|label> → label
-    text = _SLACK_URL_BARE_RE.sub("", text)    # bare <url> → remove
-    text = _SLACK_BOLD_RE.sub(r"\1", text)     # *bold* → text
-    text = _SLACK_ITALIC_RE.sub(r"\1", text)   # _italic_ → text
-    text = _SLACK_STRIKE_RE.sub(r"\1", text)   # ~strike~ → text
-    text = _SLACK_CODE_RE.sub(r"\1", text)     # `code` → text
+    """Strip Slack formatting markup from message text for clean display and LLM input."""
+    text = _SLACK_URL_RE.sub(r"\1", text)          # <url|label> → label
+    text = _SLACK_URL_BARE_RE.sub("", text)        # bare <url> → remove
+    text = _SLACK_CHANNEL_RE.sub(r"#\1", text)     # <#ID|name> → #name
+    text = _SLACK_USER_RE.sub("", text)            # <@USER> → remove
+    text = _SLACK_BOLD_RE.sub(r"\1", text)         # *bold* → text
+    text = _SLACK_ITALIC_RE.sub(r"\1", text)       # _italic_ → text
+    text = _SLACK_STRIKE_RE.sub(r"\1", text)       # ~strike~ → text
+    text = _SLACK_CODE_RE.sub(r"\1", text)         # `code` → text
+    text = _SLACK_EMOJI_RE.sub("", text)           # :emoji: → remove
+    text = _SLACK_MULTISPACE_RE.sub(" ", text)     # collapse extra spaces
     return text.strip()
 
 
@@ -108,7 +116,7 @@ def extract(message: dict[str, Any], channel_id: str) -> dict:
     """
     ts = message.get("ts", "")
     user = message.get("user") or message.get("bot_id")
-    raw_text = message.get("text") or ""
+    slack_raw = message.get("text") or ""  # original Slack text with formatting markers
 
     # Convert Slack ts (Unix float string) to UTC datetime
     try:
@@ -119,8 +127,8 @@ def extract(message: dict[str, Any], channel_id: str) -> dict:
     urls: list[str] = []
     attachment_names: list[str] = []
 
-    # --- URLs from plain text ---
-    urls.extend(_URL_RE.findall(raw_text))
+    # --- URLs from plain text (use original — URLs are in <url|label> format) ---
+    urls.extend(_URL_RE.findall(slack_raw))
 
     # --- URLs and text from blocks (rich text / section) ---
     for block in message.get("blocks", []) or []:
@@ -129,7 +137,7 @@ def extract(message: dict[str, Any], channel_id: str) -> dict:
     # --- Legacy attachments ---
     for att in message.get("attachments", []) or []:
         att_text = att.get("text") or att.get("fallback") or ""
-        urls.extend(_URL_RE.findall(att_text))
+        urls.extend(_URL_RE.findall(att_text))  # noqa: use raw att text for URL extraction
         if att.get("title_link"):
             urls.append(att["title_link"])
 
@@ -153,14 +161,16 @@ def extract(message: dict[str, Any], channel_id: str) -> dict:
             seen.add(u)
             unique_urls.append(u)
 
-    event_dates = extract_dates(raw_text)
+    # Clean formatting for display and date extraction
+    display_text = clean_slack_text(slack_raw)
+    event_dates = extract_dates(display_text)
 
     return {
         "slack_message_ts": ts,
         "slack_channel_id": channel_id,
         "slack_user_id": user,
         "posted_at": posted_at,
-        "raw_text": raw_text,
+        "raw_text": display_text,   # store clean text — no Slack markup
         "extracted_urls": unique_urls,
         "attachment_names": attachment_names,
         "event_dates": event_dates,

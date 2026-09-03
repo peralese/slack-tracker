@@ -237,3 +237,38 @@ body {
 .status-msg       { padding: 10px 0; font-size: 13px; color: #57606a; }
 .status-msg.error { color: #b91c1c; }
 .card-error       { font-size: 12px; color: #b91c1c; margin-top: 6px; }
+
+/* ── Card actions (re-score) ─────────────────────────────────────────── */
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.rescore-button {
+  padding: 4px 10px;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  color: #374151;
+}
+.rescore-button:disabled { opacity: 0.5; cursor: not-allowed; }
+.rescore-button:hover:not(:disabled) { background: #e5e7eb; }
+
+.rescore-msg {
+  font-size: 12px;
+  color: #57606a;
+  font-style: italic;
+}
+
+/* ── Last sync indicator ─────────────────────────────────────────────── */
+.last-sync {
+  font-size: 11px;
+  color: #57606a;
+  text-align: right;
+  margin-bottom: 8px;
+}

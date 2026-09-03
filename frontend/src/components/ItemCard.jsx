@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { updateNotes, updateStatus } from '../api';
+import { rescoreItem, updateNotes, updateStatus } from '../api';
 
 const STATUS_LABELS = {
   new:       'New',
@@ -17,9 +17,11 @@ function ScoreBadge({ score }) {
 }
 
 export default function ItemCard({ item, onUpdated }) {
-  const [notes, setNotes]     = useState(item.user_notes || '');
-  const [saving, setSaving]   = useState(false);
-  const [error, setError]     = useState('');
+  const [notes,    setNotes]    = useState(item.user_notes || '');
+  const [saving,   setSaving]   = useState(false);
+  const [rescoring, setRescoring] = useState(false);
+  const [rescoredMsg, setRescoredMsg] = useState('');
+  const [error,    setError]    = useState('');
 
   async function handleStatusChange(e) {
     const newStatus = e.target.value;
@@ -28,6 +30,21 @@ export default function ItemCard({ item, onUpdated }) {
       onUpdated(updated);
     } catch {
       setError('Failed to update status.');
+    }
+  }
+
+  async function handleRescore() {
+    setRescoring(true);
+    setRescoredMsg('');
+    setError('');
+    try {
+      await rescoreItem(item.id);
+      setRescoredMsg('Re-scoring… score will update on next refresh.');
+      setTimeout(() => setRescoredMsg(''), 8000);
+    } catch {
+      setError('Failed to trigger re-score.');
+    } finally {
+      setRescoring(false);
     }
   }
 
@@ -130,6 +147,18 @@ export default function ItemCard({ item, onUpdated }) {
         <button onClick={handleSaveNotes} disabled={saving}>
           {saving ? 'Saving…' : 'Save Notes'}
         </button>
+      </div>
+
+      <div className="card-actions">
+        <button
+          className="rescore-button"
+          onClick={handleRescore}
+          disabled={rescoring}
+          title="Re-run LLM relevance scoring on this message"
+        >
+          {rescoring ? '⏳ Scoring…' : '🔄 Re-score'}
+        </button>
+        {rescoredMsg && <span className="rescore-msg">{rescoredMsg}</span>}
       </div>
 
       {error && <p className="card-error">{error}</p>}

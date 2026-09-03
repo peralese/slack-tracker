@@ -223,6 +223,27 @@ def update_item_notes(item_id: int, notes: str) -> Optional[dict]:
         return item.to_dict()
 
 
+def rescore_item(item_id: int, score: float, explanation: str, keyword_score: int) -> Optional[dict]:
+    """Update the relevance score, explanation, and keyword score of an item."""
+    with SessionLocal() as session:
+        item = session.query(Item).filter(Item.id == item_id).first()
+        if not item:
+            return None
+        item.relevance_score = score
+        item.relevance_explanation = explanation
+        item.keyword_score = keyword_score
+        session.commit()
+        session.refresh(item)
+        return item.to_dict()
+
+
+def get_item_by_id(item_id: int) -> Optional[dict]:
+    """Return a single item dict by id, or None if not found."""
+    with SessionLocal() as session:
+        item = session.query(Item).filter(Item.id == item_id).first()
+        return item.to_dict() if item else None
+
+
 def get_latest_message_ts() -> Optional[str]:
     """Return the highest (most recent) slack_message_ts stored, or None on first run."""
     with SessionLocal() as session:

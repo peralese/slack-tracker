@@ -21,6 +21,10 @@ export function updateNotes(id, notes) {
   return api.patch(`/items/${id}/notes`, { notes }).then(r => r.data);
 }
 
+export function rescoreItem(id) {
+  return api.post(`/items/${id}/rescore`).then(r => r.data);
+}
+
 export function triggerPoll() {
   return api.post('/poll/trigger').then(r => r.data);
 }
